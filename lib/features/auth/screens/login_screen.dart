@@ -42,20 +42,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Logo
               Container(
-                width: 80,
-                height: 80,
+                width: 120,
+                height: 120,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(28),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withAlpha(100),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withAlpha(120),
+                      blurRadius: 32,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(28),
                   child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
                 ),
               ),
