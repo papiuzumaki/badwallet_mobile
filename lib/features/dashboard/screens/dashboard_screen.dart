@@ -99,7 +99,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
           _IconBtn(
-            icon: Icons.power_settings_new_rounded,
+            icon: Icons.logout_rounded,
             color: kT2,
             onTap: () async {
               await context.read<AuthProvider>().logout();
