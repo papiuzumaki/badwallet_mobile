@@ -11,26 +11,52 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _fade;
-  late final Animation<double> _scale;
+    with TickerProviderStateMixin {
+  late final AnimationController _logoCtrl;
+  late final AnimationController _textCtrl;
+  late final AnimationController _pulseCtrl;
+
+  late final Animation<double> _logoFade;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _textFade;
+  late final Animation<Offset> _textSlide;
+  late final Animation<double> _pulse;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _fade  = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _scale = Tween<double>(begin: 0.75, end: 1.0)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutBack));
-    _ctrl.forward();
-    _init();
+
+    // Logo: fade + scale in
+    _logoCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _logoFade  = CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOut);
+    _logoScale = Tween<double>(begin: 0.6, end: 1.0)
+        .animate(CurvedAnimation(parent: _logoCtrl, curve: Curves.easeOutBack));
+
+    // Texte: slide up + fade (décalé de 400ms)
+    _textCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _textFade  = CurvedAnimation(parent: _textCtrl, curve: Curves.easeOut);
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.4), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _textCtrl, curve: Curves.easeOutCubic));
+
+    // Pulse subtil en boucle
+    _pulseCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
+      ..repeat(reverse: true);
+    _pulse = Tween<double>(begin: 1.0, end: 1.06)
+        .animate(CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+
+    _startSequence();
   }
 
-  Future<void> _init() async {
+  Future<void> _startSequence() async {
+    await _logoCtrl.forward();
+    await Future.delayed(const Duration(milliseconds: 100));
+    _textCtrl.forward();
+
+    if (!mounted) return;
     final auth = context.read<AuthProvider>();
     await auth.init();
-    await Future.delayed(const Duration(milliseconds: 2200));
+    await Future.delayed(const Duration(milliseconds: 1800));
+
     if (!mounted) return;
     if (auth.status == AuthStatus.authenticated) {
       Navigator.pushReplacementNamed(context, '/dashboard');
@@ -41,7 +67,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _logoCtrl.dispose();
+    _textCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -50,62 +78,78 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: kBg,
       body: Center(
-        child: FadeTransition(
-          opacity: _fade,
-          child: ScaleTransition(
-            scale: _scale,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF7C3AED), Color(0xFF6C5CE7)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Logo animé
+            FadeTransition(
+              opacity: _logoFade,
+              child: ScaleTransition(
+                scale: _logoScale,
+                child: ScaleTransition(
+                  scale: _pulse,
+                  child: Container(
+                    width: 110,
+                    height: 110,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withAlpha(18),
+                          blurRadius: 40,
+                          spreadRadius: 4,
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0x506C5CE7),
-                        blurRadius: 32,
-                        offset: const Offset(0, 12),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text('BW',
-                        style: GoogleFonts.poppins(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1)),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                Text('BadWallet',
-                    style: GoogleFonts.poppins(
-                        color: kT1,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5)),
-                const SizedBox(height: 6),
-                Text('Votre portefeuille mobile',
-                    style: GoogleFonts.poppins(color: kT2, fontSize: 13)),
-                const SizedBox(height: 52),
-                SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: kPrimary,
-                    strokeWidth: 2,
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+
+            const SizedBox(height: 28),
+
+            // Texte animé
+            FadeTransition(
+              opacity: _textFade,
+              child: SlideTransition(
+                position: _textSlide,
+                child: Column(
+                  children: [
+                    Text(
+                      'BadWallet',
+                      style: GoogleFonts.poppins(
+                        color: kT1,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Votre portefeuille mobile',
+                      style: GoogleFonts.poppins(color: kT2, fontSize: 13.5),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 60),
+
+            // Loader discret
+            FadeTransition(
+              opacity: _textFade,
+              child: SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(color: kT3, strokeWidth: 1.5),
+              ),
+            ),
+          ],
         ),
       ),
     );
